@@ -1,0 +1,20 @@
+{
+  "name": "pulseops-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "start": "concurrently -k -n API,WEB -c green,cyan \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\"",
+    "start:backend": "npm run dev --workspace backend",
+    "start:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "lint": "npm run lint --workspace frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
+

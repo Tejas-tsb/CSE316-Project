@@ -217,6 +217,21 @@ html[data-accent="rose"] {
     background: rgba(255, 255, 255, 0.03);
   }
 
+  .status-banner {
+    @apply flex items-center justify-between gap-3 rounded-[28px] border px-5 py-4 shadow-glass;
+    background:
+      linear-gradient(135deg, rgba(var(--accent-rgb), 0.08), transparent 45%),
+      rgba(255, 255, 255, 0.05);
+  }
+
+  .status-banner-critical {
+    border-color: rgba(244, 63, 94, 0.22);
+    background:
+      linear-gradient(135deg, rgba(244, 63, 94, 0.16), transparent 42%),
+      rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+  }
+
   .accent-swatch {
     @apply inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition;
     background: rgba(255, 255, 255, 0.04);

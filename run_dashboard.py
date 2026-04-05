@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
+import signal
 import shutil
 import socket
 import subprocess
@@ -9,6 +11,43 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
+
+
+def resolve_npm_command() -> list[str]:
+    if os.name != "nt":
+        npm_path = shutil.which("npm")
+        return [npm_path or "npm"]
+
+    # On Windows, Python's CreateProcess often needs the .cmd shim explicitly.
+    candidates = [
+        shutil.which("npm.cmd"),
+        shutil.which("npm"),
+        r"C:\Program Files\nodejs\npm.cmd",
+        r"C:\Program Files\nodejs\npm",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return [candidate]
+
+    raise FileNotFoundError(
+        "Could not find npm. Install Node.js or add its installation directory "
+        "(for example C:\\Program Files\\nodejs) to PATH."
+    )
+
+
+def terminate_process(process: subprocess.Popen[object]) -> None:
+    if process.poll() is not None:
+        return
+
+    try:
+        if os.name == "nt":
+            process.send_signal(signal.CTRL_BREAK_EVENT)
+        else:
+            process.terminate()
+        process.wait(timeout=5)
+    except Exception:
+        process.kill()
+        process.wait(timeout=5)
 
 
 def ensure_env_file(target: Path, example: Path) -> None:
@@ -41,10 +80,42 @@ def main() -> int:
     print(f"Backend API will be available at: http://{local_ip}:5001")
     print("Press Ctrl+C to stop both services.\n")
 
+    npm_command = resolve_npm_command()
+    creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+    backend = None
+    frontend = None
+
     try:
-        completed = subprocess.run(["npm", "start"], cwd=PROJECT_ROOT)
-        return completed.returncode
+        backend = subprocess.Popen(
+            [*npm_command, "run", "dev", "--workspace", "backend"],
+            cwd=PROJECT_ROOT,
+            creationflags=creationflags,
+        )
+        frontend = subprocess.Popen(
+            [*npm_command, "run", "dev", "--workspace", "frontend"],
+            cwd=PROJECT_ROOT,
+            creationflags=creationflags,
+        )
+
+        while True:
+            backend_code = backend.poll()
+            frontend_code = frontend.poll()
+            if backend_code is not None or frontend_code is not None:
+                if backend_code is None:
+                    terminate_process(backend)
+                    backend_code = backend.wait()
+                if frontend_code is None:
+                    terminate_process(frontend)
+                    frontend_code = frontend.wait()
+                return backend_code or frontend_code or 0
+    except FileNotFoundError as exc:
+        print(exc, file=sys.stderr)
+        return 1
     except KeyboardInterrupt:
+        if backend is not None:
+            terminate_process(backend)
+        if frontend is not None:
+            terminate_process(frontend)
         return 130
 
 

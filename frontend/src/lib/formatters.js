@@ -25,6 +25,24 @@ export const formatUptime = (seconds) => {
   return `${minutes}m`;
 };
 
+export const formatRelativeTime = (timestamp) => {
+  if (!timestamp) return "Waiting for first sync";
+
+  const deltaSeconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
+
+  if (deltaSeconds < 5) return "Just now";
+  if (deltaSeconds < 60) return `${deltaSeconds}s ago`;
+
+  const minutes = Math.floor(deltaSeconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
 export const severityTone = (value, warning = 75, critical = 90) => {
   if (value >= critical) return "critical";
   if (value >= warning) return "warning";

@@ -2,6 +2,7 @@ import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 
 import { motion } from "framer-motion";
 import {
   Activity,
+  AlertTriangle,
   Cpu,
   Download,
   LogOut,
@@ -25,7 +26,13 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { apiRequest, createSocket } from "../lib/api";
-import { downloadBlob, formatPercent, formatUptime, severityTone } from "../lib/formatters";
+import {
+  downloadBlob,
+  formatPercent,
+  formatRelativeTime,
+  formatUptime,
+  severityTone,
+} from "../lib/formatters";
 
 function DashboardPage() {
   const { logout, token, user } = useAuth();
@@ -44,36 +51,51 @@ function DashboardPage() {
   const [exportBusy, setExportBusy] = useState(false);
   const [banner, setBanner] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [clockTick, setClockTick] = useState(Date.now());
 
   const debouncedSearch = useDebouncedValue(searchValue, 220);
   const deferredSearch = useDeferredValue(debouncedSearch.toLowerCase().trim());
 
-  useEffect(() => {
-    let mounted = true;
+  const loadSnapshot = async ({ silent = false } = {}) => {
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
 
-    const bootstrap = async () => {
-      try {
-        const response = await apiRequest("/api/system/snapshot", { token });
-        if (!mounted) return;
-        setSnapshot(response.snapshot);
-        setAlerts(response.alerts || []);
-        setActivityLogs(response.activityLogs || []);
-      } catch (error) {
-        if (!mounted) return;
-        setBanner(error.message);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+    try {
+      const response = await apiRequest("/api/system/snapshot", { token });
+      setSnapshot(response.snapshot);
+      setAlerts(response.alerts || []);
+      setActivityLogs(response.activityLogs || []);
+      setLastUpdatedAt(Date.now());
+      setBanner("");
+    } catch (error) {
+      setBanner(error.message);
+    } finally {
+      if (silent) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
       }
-    };
+    }
+  };
 
-    bootstrap();
+  useEffect(() => {
+    loadSnapshot();
+  }, [token]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setClockTick(Date.now());
+    }, 1000);
 
     return () => {
-      mounted = false;
+      window.clearInterval(timer);
     };
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     const socket = createSocket(token);
@@ -89,6 +111,7 @@ function DashboardPage() {
         if (incomingSnapshot.alerts) {
           setAlerts(incomingSnapshot.alerts);
         }
+        setLastUpdatedAt(Date.now());
       });
     });
     socket.on("alert:new", (incomingAlert) => {
@@ -123,6 +146,14 @@ function DashboardPage() {
 
   const summary = snapshot?.summary;
   const appTitle = import.meta.env.VITE_APP_TITLE || "PulseOps";
+  const snapshotAgeMs = lastUpdatedAt ? clockTick - lastUpdatedAt : Number.POSITIVE_INFINITY;
+  const dataFreshness = snapshotAgeMs <= 8000 ? "fresh" : snapshotAgeMs <= 20000 ? "aging" : "stale";
+  const healthTone =
+    connectionStatus === "offline"
+      ? "critical"
+      : dataFreshness === "stale"
+        ? "warning"
+        : "normal";
 
   const toggleSort = (nextKey) => {
     if (sortKey === nextKey) {
@@ -148,6 +179,10 @@ function DashboardPage() {
     } finally {
       setExportBusy(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    await loadSnapshot({ silent: true });
   };
 
   const handleTerminate = async () => {
@@ -265,10 +300,77 @@ function DashboardPage() {
         </header>
 
         {banner ? (
-          <div className="mb-6 rounded-3xl border border-white/8 bg-white/[0.06] px-5 py-4 text-sm text-[var(--text-primary)] shadow-glass">
-            {banner}
+          <div className="status-banner status-banner-critical mb-6">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{banner}</span>
           </div>
         ) : null}
+
+        <section className="mb-6 grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.8fr]">
+          <div className="status-banner">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--text-secondary)]">
+                Data freshness
+              </p>
+              <p className="mt-2 font-display text-xl font-semibold text-[var(--text-primary)]">
+                {formatRelativeTime(lastUpdatedAt)}
+              </p>
+            </div>
+            <span
+              className={`chip ${
+                dataFreshness === "fresh"
+                  ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+                  : dataFreshness === "aging"
+                    ? "border-amber-400/30 bg-amber-500/10 text-amber-300"
+                    : "border-rose-400/30 bg-rose-500/10 text-rose-300"
+              }`}
+            >
+              {dataFreshness === "fresh"
+                ? "Live stream healthy"
+                : dataFreshness === "aging"
+                  ? "Refresh lag detected"
+                  : "Snapshot is stale"}
+            </span>
+          </div>
+
+          <div className="status-banner">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--text-secondary)]">
+                Service posture
+              </p>
+              <p className="mt-2 font-display text-xl font-semibold text-[var(--text-primary)]">
+                {connectionStatus === "live" ? "Connected" : "Disconnected"}
+              </p>
+            </div>
+            <span
+              className={`chip ${
+                healthTone === "normal"
+                  ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+                  : healthTone === "warning"
+                    ? "border-amber-400/30 bg-amber-500/10 text-amber-300"
+                    : "border-rose-400/30 bg-rose-500/10 text-rose-300"
+              }`}
+            >
+              {connectionStatus === "live" ? "WebSocket online" : "Waiting for reconnect"}
+            </span>
+          </div>
+
+          <div className="status-banner justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--text-secondary)]">
+                Control action
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                Pull a fresh snapshot immediately if the stream pauses or operators need a
+                point-in-time check.
+              </p>
+            </div>
+            <button className="button-secondary" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Refreshing" : "Refresh now"}
+            </button>
+          </div>
+        </section>
 
         <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard

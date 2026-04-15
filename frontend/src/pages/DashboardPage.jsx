@@ -230,8 +230,7 @@ function DashboardPage() {
                 <span className="block text-[var(--accent)]">Process Command Center</span>
               </h1>
               <p className="mt-4 max-w-xl text-base leading-7 text-[var(--text-secondary)]">
-                Inspect process pressure, terminate runaway workloads, and watch alerts stream in
-                with a smooth, theme-aware DevOps dashboard.
+                Monitor system load, manage processes, review system health and respond to critical alerts from one <b>real-time</b> dashboard.
               </p>
             </div>
 

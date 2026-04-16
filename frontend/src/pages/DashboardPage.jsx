@@ -406,7 +406,7 @@ function DashboardPage() {
           />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.2fr_0.85fr_0.8fr]">
+        <section className="grid gap-6 xl:grid-cols-3 xl:[&>*]:h-[36rem]">
           <CpuHistoryChart data={snapshot?.history?.cpu || []} />
           <MemoryOverviewChart summary={summary} />
           <AlertsPanel

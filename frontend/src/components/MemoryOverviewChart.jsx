@@ -37,7 +37,7 @@ function MemoryOverviewChart({ summary }) {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: 0.08 }}
-      className="glass-panel h-full"
+      className="glass-panel flex h-full flex-col"
     >
       <div className="mb-5 flex items-center justify-between">
         <div>
@@ -47,8 +47,8 @@ function MemoryOverviewChart({ summary }) {
         <div className="chip">{formatPercent(summary?.memory)}</div>
       </div>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
-        <div className="h-60 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-5 lg:flex-row lg:items-center">
+        <div className="mx-auto h-52 w-full max-w-[208px] lg:mx-0 lg:h-[208px] lg:max-w-[208px] lg:flex-none">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -71,7 +71,7 @@ function MemoryOverviewChart({ summary }) {
           </ResponsiveContainer>
         </div>
 
-        <div className="space-y-4 lg:w-56">
+        <div className="space-y-4 lg:min-w-0 lg:flex-1">
           <div className="memory-stat">
             <span>Used</span>
             <strong>{formatBytes(used)}</strong>

@@ -7,7 +7,7 @@ function CpuHistoryChart({ data }) {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="glass-panel h-full"
+      className="glass-panel flex h-full flex-col"
     >
       <div className="mb-5 flex items-center justify-between">
         <div>
@@ -17,7 +17,7 @@ function CpuHistoryChart({ data }) {
         <div className="chip">1s cadence</div>
       </div>
 
-      <div className="h-72">
+      <div className="min-h-0 flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>
@@ -58,4 +58,3 @@ function CpuHistoryChart({ data }) {
 }
 
 export default CpuHistoryChart;
-

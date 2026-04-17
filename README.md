@@ -1,6 +1,6 @@
-# PulseOps: Real-Time Process Monitoring Dashboard
+# ProcessHub: Real-Time Process Monitoring Dashboard
 
-PulseOps is a full-stack DevOps dashboard for monitoring live process activity, system pressure, and alerts in real time. It combines a React + Tailwind frontend with an Express + Socket.io backend, backed by OS-level telemetry gathered through Node.js and `systeminformation`.
+ProcessHub is a full-stack DevOps dashboard for monitoring live process activity, system pressure, and alerts in real time. It combines a React + Tailwind frontend with an Express + Socket.io backend, backed by OS-level telemetry gathered through Node.js and `systeminformation`.
 
 ## Features
 

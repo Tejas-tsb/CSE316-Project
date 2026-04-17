@@ -29,6 +29,7 @@ PulseOps is a full-stack DevOps dashboard for monitoring live process activity, 
 └── package.json
 ```
 
+
 ## Setup
 
 1. Install dependencies from the project root:

@@ -69,6 +69,7 @@ def get_local_ip() -> str:
         probe.close()
 
 
+
 def main() -> int:
     ensure_env_file(PROJECT_ROOT / "backend" / ".env", PROJECT_ROOT / "backend" / ".env.example")
     ensure_env_file(PROJECT_ROOT / "frontend" / ".env", PROJECT_ROOT / "frontend" / ".env.example")
